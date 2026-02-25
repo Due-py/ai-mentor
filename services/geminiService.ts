@@ -52,10 +52,27 @@ const constructSystemInstruction = (memory: UserMemory, contextType: string) => 
     NGUYÊN TẮC:
     1. Ngôn ngữ: 100% Tiếng Việt.
     2. Nội dung: Chính xác, phù hợp giáo dục Việt Nam.
-    3. Khi có công thức toán, luôn viết đúng Markdown + LaTeX:
-       - Inline: $...$
-       - Xuống dòng riêng: $$...$$
-       - Không escape ký tự $.
+    
+    3. CÔNG THỨC TOÁN - RẤT QUAN TRỌNG:
+       Khi có công thức toán, bắt buộc viết dúng Markdown LaTeX:
+       - Công thức inline (trong dòng): $công_thức$
+         Ví dụ: Công thức $x^2 + 2x + 1$ là bình phương của $(x+1)$.
+       - Công thức riêng dòng (block): $$công_thức$$
+         Ví dụ:
+         $$x^2 + 2x + 1 = (x+1)^2$$
+         $$\frac{a}{b} = \frac{c}{d}$$
+       
+       LUẬT CỨNG:
+       - KHÔNG escape ký tự $. Viết $...$ mà không cần \$ hay $ ...$ .
+       - Các công thức phức tạp nên dùng block ($$...$$) để dễ đọc.
+       - Luôn format lại công thức đã cho từ người dùng thành LaTeX chuẩn nếu chưa có.
+       - Nếu giải thích công thức, viết công thức trước, rồi giải thích sau.
+    
+    4. ƯTIÊN SỬ DỤNG TOÁN:
+       Khi trả lời câu hỏi liên quan tới toán, hãy:
+       - Viết công thức toán rõ ràng
+       - Giải thích từng bước
+       - Cho ví dụ cụ thể
   `;
 };
 
@@ -67,13 +84,18 @@ export const generateQuizForTask = async (taskDescription: string, memory: UserM
     Hãy tạo 1 câu hỏi trắc nghiệm (Multiple Choice) để kiểm tra xem học sinh đã hiểu bài chưa.
     Trình độ: ${memory.grade}.
     
+    LƯU Ý QUAN TRỌNG:
+    - Nếu câu hỏi hay đáp án có công thức toán, BẮTBUỘC dùng LaTeX: $...$ (inline) hoặc $$...$$ (block).
+    - Không escape ký tự $.
+    - Giải thích phải rõ ràng và chi tiết.
+    
     Trả về JSON duy nhất (không markdown):
     {
       "id": "q1",
-      "text": "Nội dung câu hỏi?",
+      "text": "Nội dung câu hỏi? (dùng LaTeX nếu có công thức)",
       "options": ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
       "correctAnswer": 0,
-      "explanation": "Giải thích ngắn gọn tại sao đáp án này đúng."
+      "explanation": "Giải thích ngắn gọn tại sao đáp án này đúng. (dùng LaTeX nếu cần)"
     }
   `;
 
@@ -211,8 +233,12 @@ export const chatWithScriba = async (
         BỐI CẢNH TÀI LIỆU (đã truy hồi bằng local embedding chạy tại máy người dùng):
         ${groundedContext}
         
-        Hãy trả lời dựa trên bối cảnh phía trên. Giải thích dễ hiểu, phù hợp với học sinh ${memory.grade}.
-        Nếu cần viết công thức, bắt buộc dùng LaTeX markdown để hiển thị đúng.
+        HƯỚNG DẪN TRẢ LỜI:
+        - Trả lời dựa trên bối cảnh tài liệu phía trên.
+        - Giải thích dễ hiểu, phù hợp với học sinh ${memory.grade}.
+        - NẾUITEXIST CÔNG THỨC TOÁN: Viết theo format LaTeX markdown (xem nguyên tắc ở trên).
+        - Nếu tài liệu có công thức nhưng chưa rõ: Hãy reformat lại thành LaTeX chuẩn.
+        - Luôn cung cấp ví dụ cụ thể khi giải thích công thức.
       `,
     }
   });
@@ -233,14 +259,14 @@ export const enhanceNote = async (content: string, action: 'summarize' | 'simpli
   
   switch(action) {
     case 'summarize': prompt = "Tóm tắt ghi chú này thành 3 ý chính quan trọng nhất."; break;
-    case 'simplify': prompt = "Giải thích khái niệm này một cách đơn giản nhất, lấy ví dụ thực tế."; break;
-    case 'quiz': prompt = "Tạo 3 câu hỏi trắc nghiệm ôn tập dựa trên ghi chú này (có đáp án)."; break;
+    case 'simplify': prompt = "Giải thích khái niệm này một cách đơn giản nhất, lấy ví dụ thực tế. Nếu có công thức toán, hãy giải thích từng bước."; break;
+    case 'quiz': prompt = "Tạo 3 câu hỏi trắc nghiệm ôn tập dựa trên ghi chú này (có đáp án). Nếu có công thức toán, hãy dùng LaTeX."; break;
   }
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Nội dung: "${content}"\n\nYêu cầu: ${prompt}\n\nNếu có công thức toán thì dùng chuẩn markdown LaTeX: inline $...$, block $$...$$.`,
+      contents: `Nội dung: "${content}"\n\nYêu cầu: ${prompt}\n\nNHỚ: Nếu có công thức toán thì BẮTBUỘC dùng chuẩn markdown LaTeX: inline $...$, block $$...$$. KHÔNG escape ký tự $.`,
       config: {
         systemInstruction: constructSystemInstruction(memory, 'Gia sư Riêng'),
       }

@@ -167,20 +167,39 @@ export const generateStudyPlan = async (subject: string, duration: string, memor
   }
 };
 
+// --- Helper: Validate URL ---
+const isValidUrl = (url: string): boolean => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 // --- Feature: Resource Discovery ---
 export const discoverResources = async (subject: string, memory: UserMemory): Promise<Resource[]> => {
   const ai = getClient();
   const prompt = `
     Tìm 5 tài liệu học tập trực tuyến chất lượng cao, miễn phí cho môn "${subject}" trình độ ${memory.grade} tại Việt Nam.
-    Ưu tiên các nguồn: VietJack, Hocmai, OLM, Vuihoc, hoặc kênh Youtube giáo dục uy tín của Việt Nam.
     
-    Trả về định dạng JSON (không markdown):
+    HƯỚNG DẪN QUAN TRỌNG:
+    - CHỈ sử dụng các trang web/nguồn uy tín được tạo thành công: VietJack, Hocmai, OLM, Vuihoc, Khan Academy Tiếng Việt, FPT Skool.
+    - URL PHẢI CHÍNH XÁC 100% và hiện tại hoạt động (không hallucinate URL).
+    - Ưu tiên các bài viết/video từ:
+      * VietJack (vietjack.com)
+      * Hocmai (hocmai.vn)
+      * OLM (olm.vn)
+      * Vuihoc (vuihoc.vn)
+    - Nếu không chắc URL chính xác, thay vì hallucinate, hãy mô tả rõ tên bài viết và để url = "https://vietjack.com" (domain chính).
+    
+    Trả về JSON (không markdown):
     [
       {
         "id": "unique_id",
-        "title": "Tên tài liệu",
+        "title": "Tên tài liệu (ví dụ: Bài tập về Từ loại - Tiếng Anh)",
         "type": "video" | "article" | "exercise",
-        "url": "https://example.com",
+        "url": "https://vietjack.com/trang-chu",
         "authority": "High",
         "description": "Mô tả ngắn gọn về nội dung."
       }
@@ -198,7 +217,10 @@ export const discoverResources = async (subject: string, memory: UserMemory): Pr
     });
 
     const text = response.text || '';
-    return cleanAndParseJSON(text) || [];
+    const resources = cleanAndParseJSON(text) || [];
+    
+    // Filter out invalid URLs
+    return resources.filter((resource: Resource) => isValidUrl(resource.url));
   } catch (error) {
     console.error("Resource Discovery Error:", error);
     return [];

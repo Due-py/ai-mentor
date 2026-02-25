@@ -236,8 +236,10 @@ export const chatWithScriba = async (
         HƯỚNG DẪN TRẢ LỜI:
         - Trả lời dựa trên bối cảnh tài liệu phía trên.
         - Giải thích dễ hiểu, phù hợp với học sinh ${memory.grade}.
-        - NẾUITEXIST CÔNG THỨC TOÁN: Viết theo format LaTeX markdown (xem nguyên tắc ở trên).
+        - NẾU CÓ CÔNG THỨC TOÁN: BẮTBUỘC viết theo format LaTeX markdown (xem nguyên tắc ở trên).
         - Nếu tài liệu có công thức nhưng chưa rõ: Hãy reformat lại thành LaTeX chuẩn.
+        - Luôn dùng $...$ cho inline math và $$....$$ cho block math.
+        - KHÔNG bao giờ escape ký tự $.
         - Luôn cung cấp ví dụ cụ thể khi giải thích công thức.
       `,
     }
